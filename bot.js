@@ -3,6 +3,10 @@ const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs");
 const path = require("path");
 const { text } = require("stream/consumers");
+const express = require("express");
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
@@ -1090,4 +1094,11 @@ bot.onText(/\/getkey/, (msg) => {
   }
 
   bot.sendMessage(chatId, message);
+});
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
