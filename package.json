@@ -1,0 +1,20 @@
+{
+  "name": "basedbot",
+  "version": "1.0.0",
+  "description": "bot",
+  "license": "ISC",
+  "author": "wale",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --ignore wallets.json --ignore users.json bot.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "node-telegram-bot-api": "^0.67.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
