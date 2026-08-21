@@ -8,12 +8,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
+if (!process.env.BOT_TOKEN) {
+  throw new Error("BOT_TOKEN is required. Add it to your environment variables.");
+}
+
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
 // Admin whitelist - Add trusted telegram usernames here
-const ADMIN_IDS = process.env.ADMIN_IDS.split(",").map((id) =>
-  Number(id.trim()),
-);
+const ADMIN_IDS = (process.env.ADMIN_IDS || "")
+  .split(",")
+  .map((id) => Number(id.trim()))
+  .filter(Number.isFinite);
 const walletsFile = path.join(__dirname, "wallets.json");
 const usersFile = path.join(__dirname, "users.json");
 const languageSettingsFile = path.join(__dirname, "language-settings.json");
