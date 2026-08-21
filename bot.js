@@ -16,6 +16,40 @@ const ADMIN_IDS = process.env.ADMIN_IDS.split(",").map((id) =>
 );
 const walletsFile = path.join(__dirname, "wallets.json");
 const usersFile = path.join(__dirname, "users.json");
+const languageSettingsFile = path.join(__dirname, "language-settings.json");
+
+const LANGUAGES = {
+  en: { nativeLabel: "English" },
+  es: { nativeLabel: "Español" },
+  fr: { nativeLabel: "Français" },
+  de: { nativeLabel: "Deutsch" },
+  pt: { nativeLabel: "Português" },
+  ru: { nativeLabel: "Русский" },
+  tr: { nativeLabel: "Türkçe" },
+  zh: { nativeLabel: "中文" },
+};
+
+function loadLanguageSettings() {
+  if (!fs.existsSync(languageSettingsFile)) return {};
+
+  try {
+    return JSON.parse(fs.readFileSync(languageSettingsFile, "utf8"));
+  } catch (error) {
+    console.error("Failed to parse language-settings.json:", error.message);
+    return {};
+  }
+}
+
+function getLanguage(chatId) {
+  const languageCode = loadLanguageSettings()[String(chatId)] || "en";
+  return LANGUAGES[languageCode] ? languageCode : "en";
+}
+
+function saveLanguage(chatId, languageCode) {
+  const languageSettings = loadLanguageSettings();
+  languageSettings[String(chatId)] = languageCode;
+  fs.writeFileSync(languageSettingsFile, JSON.stringify(languageSettings, null, 2));
+}
 
 // Load wallets from file
 function loadWallets() {
@@ -233,43 +267,63 @@ const mainMenu = {
     ],
   },
 };
-const walletMenu = {
-  reply_markup: {
-    inline_keyboard: [
+const WALLET_SETTINGS_TRANSLATIONS = {
+  en: ["Wallet Settings", "Manage your wallets quickly and easily.", "Available Wallets", "Import a Wallet", "Preferred Wallet", "Export Private Key", "Delete Wallet", "Transfer Currency", "Transfer Token", "Swap Currency", "Split / Consolidate", "New Wallet", "Reorder", "Refresh", "No wallets imported yet."],
+  es: ["Configuración de billeteras", "Gestiona tus billeteras de forma rápida y sencilla.", "Billeteras disponibles", "Importar una billetera", "Billetera preferida", "Exportar clave privada", "Eliminar billetera", "Transferir moneda", "Transferir token", "Intercambiar moneda", "Dividir / Consolidar", "Nueva billetera", "Reordenar", "Actualizar", "Aún no se han importado billeteras."],
+  fr: ["Paramètres des portefeuilles", "Gérez vos portefeuilles rapidement et facilement.", "Portefeuilles disponibles", "Importer un portefeuille", "Portefeuille préféré", "Exporter la clé privée", "Supprimer le portefeuille", "Transférer une devise", "Transférer un jeton", "Échanger une devise", "Diviser / Consolider", "Nouveau portefeuille", "Réorganiser", "Actualiser", "Aucun portefeuille n’a encore été importé."],
+  de: ["Wallet-Einstellungen", "Verwalte deine Wallets schnell und einfach.", "Verfügbare Wallets", "Wallet importieren", "Bevorzugte Wallet", "Privaten Schlüssel exportieren", "Wallet löschen", "Währung übertragen", "Token übertragen", "Währung tauschen", "Aufteilen / Zusammenführen", "Neue Wallet", "Neu anordnen", "Aktualisieren", "Noch keine Wallets importiert."],
+  pt: ["Configurações de carteiras", "Gerencie suas carteiras de forma rápida e fácil.", "Carteiras disponíveis", "Importar uma carteira", "Carteira preferida", "Exportar chave privada", "Excluir carteira", "Transferir moeda", "Transferir token", "Trocar moeda", "Dividir / Consolidar", "Nova carteira", "Reordenar", "Atualizar", "Nenhuma carteira foi importada ainda."],
+  ru: ["Настройки кошельков", "Управляйте кошельками быстро и удобно.", "Доступные кошельки", "Импортировать кошелёк", "Предпочтительный кошелёк", "Экспортировать приватный ключ", "Удалить кошелёк", "Перевести валюту", "Перевести токен", "Обменять валюту", "Разделить / Объединить", "Новый кошелёк", "Изменить порядок", "Обновить", "Кошельки ещё не импортированы."],
+  tr: ["Cüzdan Ayarları", "Cüzdanlarınızı hızlı ve kolay şekilde yönetin.", "Kullanılabilir cüzdanlar", "Cüzdan içe aktar", "Tercih edilen cüzdan", "Özel anahtarı dışa aktar", "Cüzdanı sil", "Para birimi transferi", "Token transferi", "Para birimi takası", "Böl / Birleştir", "Yeni cüzdan", "Yeniden sırala", "Yenile", "Henüz cüzdan içe aktarılmadı."],
+  zh: ["钱包设置", "快速轻松地管理您的钱包。", "可用钱包", "导入钱包", "首选钱包", "导出私钥", "删除钱包", "转账货币", "转账代币", "兑换货币", "拆分 / 合并", "新钱包", "重新排序", "刷新", "尚未导入钱包。"],
+};
+
+function getWalletSettingsText(languageCode) {
+  const [title, description, availableWallets, , , , , , , , , , , , noWallets] = WALLET_SETTINGS_TRANSLATIONS[languageCode] || WALLET_SETTINGS_TRANSLATIONS.en;
+  return `💰 *${title}*\n${description}\n\n👜 *${availableWallets}*\n${noWallets}`;
+}
+
+function getWalletSettingsMenu(languageCode) {
+  const [, , , importWallet, preferredWallet, exportPrivateKey, deleteWallet, transferCurrency, transferToken, swapCurrency, splitConsolidate, newWallet, reorder, refresh] = WALLET_SETTINGS_TRANSLATIONS[languageCode] || WALLET_SETTINGS_TRANSLATIONS.en;
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
       [
-        { text: "🔑 Import a Wallet", callback_data: "import_wallet_prompt" },
-        { text: "💼 Preferred Wallet", callback_data: "delete_wallet" },
+        { text: `🔑 ${importWallet}`, callback_data: "import_wallet_prompt" },
+        { text: `💼 ${preferredWallet}`, callback_data: "delete_wallet" },
       ],
       [
         {
-          text: "📥 Export Private Key",
+          text: `📥 ${exportPrivateKey}`,
           callback_data: "import_wallet_prompt",
         },
-        { text: "🗑️ Delete Wallet", callback_data: "delete_wallet" },
+        { text: `🗑️ ${deleteWallet}`, callback_data: "delete_wallet" },
       ],
       [
-        { text: "💰 Transfer Currency", callback_data: "import_wallet_prompt" },
-        { text: "🪙 Transfer Token", callback_data: "import_wallet_prompt" },
+        { text: `💰 ${transferCurrency}`, callback_data: "import_wallet_prompt" },
+        { text: `🪙 ${transferToken}`, callback_data: "import_wallet_prompt" },
       ],
       [
-        { text: "🔁 Swap Currency", callback_data: "import_wallet_prompt" },
+        { text: `🔁 ${swapCurrency}`, callback_data: "import_wallet_prompt" },
         {
-          text: "🔀 Split/  Consolidate",
+          text: `🔀 ${splitConsolidate}`,
           callback_data: "import_wallet_prompt",
         },
       ],
       [{ text: "W1 ✅", callback_data: "import_wallet_prompt" }],
       [
-        { text: "➕ New Wallet", callback_data: "import_wallet_prompt" },
-        { text: "🔀 Reorder", callback_data: "import_wallet_prompt" },
+        { text: `➕ ${newWallet}`, callback_data: "import_wallet_prompt" },
+        { text: `🔀 ${reorder}`, callback_data: "import_wallet_prompt" },
       ],
       [
         { text: "⬅️", callback_data: "back_to_main" },
-        { text: "🔃 Refresh", callback_data: "refresh" },
+        { text: `🔃 ${refresh}`, callback_data: "refresh" },
       ],
-    ],
-  },
-};
+      ],
+    },
+  };
+}
 const importWalletMenu = {
   reply_markup: {
     inline_keyboard: [
@@ -371,10 +425,13 @@ const rewardsMenu = {
     ],
   },
 };
-const settingsMenu = {
-  reply_markup: {
-    inline_keyboard: [
-      [{ text: "─── Trading ───", callback_data: "refresh" }],
+function getSettingsMenu(languageCode = "en") {
+  const language = LANGUAGES[languageCode] || LANGUAGES.en;
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "─── Trading ───", callback_data: "refresh" }],
       [
         { text: "📉 Slippage", callback_data: "suggestions" },
         { text: "✨ Price Impact", callback_data: "print" },
@@ -423,7 +480,7 @@ const settingsMenu = {
       [{ text: "─── General ───", callback_data: "refresh" }],
       [
         { text: " Chains", callback_data: "monitor" },
-        { text: "🌐 Language", callback_data: "wallet_selection" },
+        { text: `🌐 Language: ${language.nativeLabel}`, callback_data: "language" },
       ],
       [
         { text: "💼 Preferred Walet", callback_data: "monitor" },
@@ -436,9 +493,29 @@ const settingsMenu = {
       [{ text: "🔒 Privacy", callback_data: "wallet_selection" }],
       [{ text: "🗑️ Reset Settings", callback_data: "close" }],
       [{ text: "◀️ Back", callback_data: "back" }],
-    ],
-  },
-};
+      ],
+    },
+  };
+}
+
+function getLanguageMenu(selectedLanguageCode) {
+  const languageButtons = Object.entries(LANGUAGES).map(([code, language]) => ({
+    text: `${code === selectedLanguageCode ? "✅ " : ""}${language.nativeLabel}`,
+    callback_data: `set_language_${code}`,
+  }));
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [languageButtons[0], languageButtons[1]],
+        [languageButtons[2], languageButtons[3]],
+        [languageButtons[4], languageButtons[5]],
+        [languageButtons[6], languageButtons[7]],
+        [{ text: "◀️ Back to Settings", callback_data: "settings" }],
+      ],
+    },
+  };
+}
 supportMenu = {
   reply_markup: {
     inline_keyboard: [
@@ -663,19 +740,12 @@ bot.on("callback_query", (query) => {
       });
       break;
     case "import_wallet":
-      bot.editMessageText(
-        `💰 Wallet Settings
-Manage your wallets quickly and easily.
-
-👜 Available Wallets
-No wallets imported yet.`,
-        {
-          chat_id: chatId,
-          message_id: msgId,
-          parse_mode: "Markdown",
-          ...walletMenu,
-        },
-      );
+      bot.editMessageText(getWalletSettingsText(getLanguage(chatId)), {
+        chat_id: chatId,
+        message_id: msgId,
+        parse_mode: "Markdown",
+        ...getWalletSettingsMenu(getLanguage(chatId)),
+      });
       break;
     case "import_wallet_prompt":
       userStates[chatId] = "waiting_for_wallet";
@@ -749,7 +819,7 @@ Total: *$0*
           chat_id: chatId,
           message_id: msgId,
           parse_mode: "Markdown",
-          ...walletMenu,
+          ...getWalletSettingsMenu(getLanguage(chatId)),
         },
       );
       break;
@@ -838,10 +908,44 @@ Configure your bot per-chain: wallets, fees, slippage, buttons, automations and 
           chat_id: chatId,
           message_id: msgId,
           parse_mode: "Markdown",
-          ...settingsMenu,
+          ...getSettingsMenu(getLanguage(chatId)),
         },
       );
       break;
+    case "language": {
+      const selectedLanguageCode = getLanguage(chatId);
+      const selectedLanguage = LANGUAGES[selectedLanguageCode];
+
+      bot.editMessageText(
+        `🌐 *Language*\n\nChoose your preferred bot language.\n\nCurrent language: *${selectedLanguage.nativeLabel}*`,
+        {
+          chat_id: chatId,
+          message_id: msgId,
+          parse_mode: "Markdown",
+          ...getLanguageMenu(selectedLanguageCode),
+        },
+      );
+      break;
+    }
+    case "set_language_en":
+    case "set_language_es":
+    case "set_language_fr":
+    case "set_language_de":
+    case "set_language_pt":
+    case "set_language_ru":
+    case "set_language_tr":
+    case "set_language_zh": {
+      const languageCode = query.data.replace("set_language_", "");
+      saveLanguage(chatId, languageCode);
+
+      bot.editMessageText(getWalletSettingsText(languageCode), {
+        chat_id: chatId,
+        message_id: msgId,
+        parse_mode: "Markdown",
+        ...getWalletSettingsMenu(languageCode),
+      });
+      break;
+    }
     case "withdraw":
       bot.editMessageText(
         `🌸* Withdraw Solana*
